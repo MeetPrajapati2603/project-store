@@ -3,10 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Home from './components/Home/Home';
 import Auth from './components/Auth/Auth';
 import Spinner from './components/Spinner/Spinner';
+import Account from './components/Account/Account';
 
 import './App.css';
 import { auth, getUserFromDatabase } from './firebase';
-import { async } from '@firebase/util';
 
 function App() {
 
@@ -24,6 +24,7 @@ function App() {
     const listener = auth.onAuthStateChanged((user)=>{
       if(!user) {
         setIsDataLoaded(true);
+        setIsAuthenticated(false);
         return;
       }
 
@@ -45,7 +46,7 @@ function App() {
                 <Route path="/signup" element={<Auth signup />} />
               </>
             )}
-            <Route path='/account' element={<h1>Account</h1>} />
+            <Route path='/account' element={<Account userDetails={userDetails} auth={isAuthenticated} />} />
             <Route path="/" element={<Home auth={isAuthenticated} />} />
             <Route path="/*" element={<Navigate to="/" />} />
           </Routes>

@@ -1,6 +1,12 @@
 import { initializeApp } from "firebase/app";
-import {getAuth} from "firebase/auth";
-import { getFirestore, setDoc, doc, getDoc} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getFirestore, setDoc, doc, getDoc } from "firebase/firestore";
+import {
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytesResumable,
+} from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQsR-2e1jCSpbyvpbc_XB5W3BzAczZdQI",
@@ -19,6 +25,8 @@ const auth = getAuth(app);
 
 const db = getFirestore(app);
 
+const storage = getStorage(app);
+
 const updateUserDatabase = async (user, uid) => {
   if (typeof user !== "object") return;
 
@@ -34,4 +42,50 @@ const getUserFromDatabase = async (uid) => {
   return result.data();
 };
 
-export { app as default, auth, db, updateUserDatabase, getUserFromDatabase };
+const uploadImage = (file, progressCallback, urlCallback, errorCallback) => {
+  if (!file) {
+    errorCallback("File not found");
+    return;
+  }
+
+  const fileType = file.type;
+  const fileSize = file.size / 1024 / 1024;
+
+  if (!fileType.includes("image")) {
+    errorCallback("File must be an image");
+    return;
+  }
+
+  if (fileSize > 2) {
+    errorCallback("Your file size is larger than 2 MB");
+  }
+
+  const storageRef = ref(storage, `images/${file.name}`);
+
+  const task = uploadBytesResumable(storageRef, file);
+
+  task.on(
+    "state_changed",
+    (snapshot) => {
+      const progress = (snapshot.bytesTransferred/snapshot.totalBytes)*100;
+      progressCallback(progress);
+    },
+    (error) => {
+      errorCallback(error.message);
+    },
+    () => {
+      getDownloadURL(storageRef).then((url) => {
+        urlCallback(url);
+      });
+    }
+  );
+};
+
+export {
+  app as default,
+  auth,
+  db,
+  updateUserDatabase,
+  getUserFromDatabase,
+  uploadImage,
+};

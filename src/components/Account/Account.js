@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { signOut } from "firebase/auth";
 import { Camera, Edit2, GitHub, LogOut, Paperclip, Trash } from "react-feather";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import InputControl from "../InputControl/InputControl";
 import styles from "./Account.module.css";
 import ProjectForm from "./ProjectForm/ProjectForm";
@@ -17,6 +17,9 @@ import {
 
 
 function Account(props) {
+
+  const navigate = useNavigate();
+
   const userDetails = props.userDetails;
   const isAuthenticated = props.auth;
   const imagePicker = useRef();
@@ -127,6 +130,10 @@ function Account(props) {
     fetchAllProjects();
   };
 
+  const handleHomeButton = () => {
+    navigate("/");
+  };
+
   useEffect(() => {
     fetchAllProjects();
   }, []);
@@ -143,7 +150,7 @@ function Account(props) {
         />
       )}
       <div className={styles.header}>
-        <p className={styles.heading}>
+        <p className={styles.heading} onClick={handleHomeButton} style={{cursor:"pointer"}}>
           Welcome<span> {userProfileValues.name} </span>
         </p>
 

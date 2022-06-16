@@ -1,6 +1,17 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, setDoc, doc, getDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  setDoc,
+  doc,
+  getDoc,
+  getDocs,
+  addDoc,
+  collection,
+  query,
+  where,
+  deleteDoc,
+} from "firebase/firestore";
 import {
   getDownloadURL,
   getStorage,
@@ -42,6 +53,34 @@ const getUserFromDatabase = async (uid) => {
   return result.data();
 };
 
+const addProjectInDatabase = async (project) => {
+  if (typeof project !== "object") return;
+
+  const collectionRef = collection(db, "projects");
+  await addDoc(collectionRef, { ...project });
+};
+
+const updateProjectInDatabase = async (project, pid) => {
+  if (typeof project !== "object") return;
+
+  const docRef = doc(db, "projects", pid);
+  await setDoc(docRef, { ...project });
+};
+
+const getAllProjects = async () => {
+  return await getDocs(collection(db, "projects"));
+};
+
+const getAllProjectsForUser = async (uid) => {
+  if (!uid) return;
+
+  const collectionRef = collection(db, "projects");
+  const condition = where("refUser", "==", uid);
+  const dbQuery = query(collectionRef, condition);
+
+  return await getDocs(dbQuery);
+};
+
 const uploadImage = (file, progressCallback, urlCallback, errorCallback) => {
   if (!file) {
     errorCallback("File not found");
@@ -67,7 +106,7 @@ const uploadImage = (file, progressCallback, urlCallback, errorCallback) => {
   task.on(
     "state_changed",
     (snapshot) => {
-      const progress = (snapshot.bytesTransferred/snapshot.totalBytes)*100;
+      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
       progressCallback(progress);
     },
     (error) => {
@@ -81,6 +120,11 @@ const uploadImage = (file, progressCallback, urlCallback, errorCallback) => {
   );
 };
 
+const deleteProject = async(pid) => {
+  const docRef = doc(db, 'projects', pid);
+  await deleteDoc(docRef);
+};
+
 export {
   app as default,
   auth,
@@ -88,4 +132,9 @@ export {
   updateUserDatabase,
   getUserFromDatabase,
   uploadImage,
+  addProjectInDatabase,
+  updateProjectInDatabase,
+  getAllProjects,
+  getAllProjectsForUser,
+  deleteProject,
 };

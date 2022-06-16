@@ -1,11 +1,20 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { signOut } from "firebase/auth";
-import { Camera, LogOut } from "react-feather";
-import { Navigate } from "react-router-dom";
+import { Camera, Edit2, GitHub, LogOut, Paperclip, Trash } from "react-feather";
+import { Link, Navigate } from "react-router-dom";
 import InputControl from "../InputControl/InputControl";
 import styles from "./Account.module.css";
+import ProjectForm from "./ProjectForm/ProjectForm";
+import Spinner from "../../components/Spinner/Spinner";
 
-import { auth, uploadImage, updateUserDatabase } from "../../firebase";
+import {
+  auth,
+  uploadImage,
+  updateUserDatabase,
+  getAllProjectsForUser,
+  deleteProject,
+} from "../../firebase";
+
 
 function Account(props) {
   const userDetails = props.userDetails;
@@ -15,7 +24,7 @@ function Account(props) {
   const [progress, setProgress] = useState(0);
   const [profileImageUploadStarted, setProfileImageUploadStarted] =
     useState(false);
-  const [profileImageUrl, setProfileImageUrl] = useState(
+  const [profileImageUrl, setProfileImageUrl] = useState(userDetails.profileImage ||
     "https://avatarfiles.alphacoders.com/131/131347.jpg"
   );
 
@@ -29,6 +38,11 @@ function Account(props) {
   const [saveButtonDisabled, setSaveButtonDisabled] = useState(false);
   const [showSaveDetailsButton, setShowSaveDetailsButton] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [isEditProjectModal, setIsEditProjectModal] = useState(false);
+  const [editProject, setEditProject] = useState({});
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -89,8 +103,45 @@ function Account(props) {
     setShowSaveDetailsButton(false);
   };
 
+  const fetchAllProjects = async () => {
+    const result = await getAllProjectsForUser(userDetails.uid);
+    if (!result) {
+      setProjectsLoaded(true);
+      return;
+    }
+    setProjectsLoaded(true);
+
+    let tempProjects = [];
+    result.forEach((doc) => tempProjects.push({ ...doc.data(), pid: doc.id }));
+    setProjects(tempProjects);
+  };
+
+  const handleEditClick = (project) => {
+    setIsEditProjectModal(true);
+    setEditProject(project);
+    setShowProjectForm(true);
+  };
+
+  const handleDeletion = async (pid) => {
+    await deleteProject(pid);
+    fetchAllProjects();
+  };
+
+  useEffect(() => {
+    fetchAllProjects();
+  }, []);
+
   return isAuthenticated ? (
     <div className={styles.container}>
+      {showProjectForm && (
+        <ProjectForm
+          onClose={() => setShowProjectForm(false)}
+          onSubmission={fetchAllProjects}
+          uid={userDetails.uid}
+          isEdit={isEditProjectModal}
+          default={editProject}
+        />
+      )}
       <div className={styles.header}>
         <p className={styles.heading}>
           Welcome<span> {userProfileValues.name} </span>
@@ -168,6 +219,45 @@ function Account(props) {
               )}
             </div>
           </div>
+        </div>
+      </div>
+      <hr />
+      <div className={styles.section}>
+        <div className={styles.projectsHeader}>
+          <div className={styles.title}>Your Projects</div>
+          <button className="button" onClick={() => setShowProjectForm(true)}>
+            Add Projects
+          </button>
+        </div>
+        <div className={styles.projects}>
+          {projectsLoaded ? (
+            projects.length > 0 ? (
+              projects.map((item, index) => (
+                <div className={styles.project} key={item.title + index}>
+                  <p className={styles.title}>{item.title}</p>
+
+                  <div className={styles.links}>
+                    <Edit2 onClick={() => handleEditClick(item)} />
+                    <Trash onClick={() => handleDeletion(item.pid)} />
+                    <Link target="_blank" to={`//${item.github}`}>
+                      <GitHub />
+                    </Link>
+                    {item.link ? (
+                      <Link target="_blank" to={`//${item.link}`}>
+                        <Paperclip />
+                      </Link>
+                    ) : (
+                      ""
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p>No projects found</p>
+            )
+          ) : (
+            <Spinner />
+          )}
         </div>
       </div>
     </div>
